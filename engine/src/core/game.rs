@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use super::unit::{Unit, UnitId};
 use super::grid::Grid;
 use super::turn::UnitQueue;
-use crate::core::geom::{Direction, Position};
+use crate::core::geom::{Direction, Position, Path};
 
 struct PlayerId(u32);
 struct AttackId(u16);
@@ -31,7 +31,7 @@ struct Turn {
 enum ResolvedAction {
     Move {
         unit_id: UnitId,
-        path: Vec<Direction>,
+        path: Path,
         final_position: Position,
     },
     Attack {
@@ -55,7 +55,7 @@ enum ResolvedAction {
 // Clients propose actions through this protocol
 enum ProposedAction {
     Move {
-        path: Vec<Direction>,
+        path: Path,
     },
     Attack {
         target: UnitId,

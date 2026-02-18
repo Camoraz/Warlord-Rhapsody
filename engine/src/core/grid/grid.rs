@@ -1,26 +1,6 @@
-use super::geom::{Position, Delta};
-use super::unit::{UnitId};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TerrainType {
-    Ground,
-    Void,   
-    WaterStill,
-    WaterCurrent(Delta)  // On turn end, units are pushed by delta
-}
-
-impl TerrainType {
-    // Check if the terrain type is walkable
-    pub fn is_walkable(&self) -> bool {
-        match self {
-            TerrainType::Ground => true,
-            TerrainType::Void => false,
-            TerrainType::WaterStill => true,
-            TerrainType::WaterCurrent(_) => true,
-        }
-    }
-}
-
+use super::super::geom::{Position};
+use super::super::unit::{UnitId};
+use super::TerrainType;
 
 pub struct Grid {
     width: usize,
@@ -61,18 +41,13 @@ impl Grid {
     }
 
     pub fn get_terrain_type(&self, pos: Position) -> Option<&TerrainType> {
+        debug_assert!(self.in_bounds(pos), "get_terrain_type called with out-of-bounds position: {:?}", pos);
+        
         if self.in_bounds(pos) {
             Some(&self.terrain[self.idx(pos)])
         } else {
             None
         }
-    }
-
-    #[inline(always)]
-    pub fn is_cell_walkable(&self, pos: Position) -> bool {
-        self.get_terrain_type(pos)
-            .map(|t| t.is_walkable())
-            .unwrap_or(false)
     }
 
     pub fn set_occupancy(&mut self, pos: Position, unit: Option<UnitId>) {
