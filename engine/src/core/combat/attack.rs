@@ -1,5 +1,7 @@
 use smallvec::SmallVec;
 
+pub struct AttackId(u16);
+
 struct AttackDefinition {
     base_damage: i32,  // negative for heal
     damage_type: DamageProfile,

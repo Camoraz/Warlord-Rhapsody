@@ -3,32 +3,44 @@ use super::unit::{Unit, UnitId};
 use super::grid::Grid;
 use super::turn::UnitQueue;
 use crate::core::geom::{Direction, Position, Path};
-
-struct PlayerId(u32);
-struct AttackId(u16);
-
-struct Player {
-    name: String,
-}
+use crate::core::player::{PlayerId, Player};
+use crate::core::combat::AttackId;
 
 pub struct Game {
     players: HashMap<PlayerId, Player>,
     units: HashMap<UnitId, Unit>,
-    state: Grid,
-    history: Vec<Turn>,
+    grid: Grid,
     queue: UnitQueue,
+
+    turns: Vec<Turn>,
+    current_turn: Option<Turn>,
+
     turn_number: u32,
+    snapshots: Vec<GameSnapshot>,
 }
 
+#[derive(Clone)]
+struct GameSnapshot {
+    turn_number: u32,
+    units: HashMap<UnitId, Unit>,
+    grid: Grid,
+    queue: UnitQueue,
+}
 
 struct Turn {
     turn_number: u32,
-    unit_id: UnitId,
-    action: ResolvedAction,
+    active_unit: UnitId,
+    actions: Vec<ActionLog>,
 }
 
-// This is broadcasted and saved in history
-enum ResolvedAction {
+struct ActionLog {
+    action: ResolvedAction,
+    changes: Vec<Change>,
+}
+
+// Broadcasted action
+#[derive(Clone)]
+pub enum ResolvedAction {
     Move {
         unit_id: UnitId,
         path: Path,
@@ -41,16 +53,13 @@ enum ResolvedAction {
     },
     Ability {
         unit_id: UnitId,
-        //ability: AbilityId,
     },
     Spawn {
-        unit_id: UnitId,
-        //unit_type: unit::UnitType,
+        unit: Unit,
         position: Position,
     },
     EndTurn,
 }
-
 
 // Clients propose actions through this protocol
 enum ProposedAction {
@@ -69,4 +78,20 @@ enum ProposedAction {
         position: Position,
     },
     EndTurn,
+}
+
+enum Change {
+    UnitModified {
+        unit_id: UnitId,
+        before: Unit,
+    },
+    UnitRemoved {
+        unit: Unit, // full snapshot so we can resurrect
+    },
+    UnitInserted {
+        unit_id: UnitId,
+    },
+    QueueModified {
+        previous: UnitQueue,
+    },
 }

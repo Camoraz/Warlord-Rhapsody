@@ -1,3 +1,6 @@
+use super::geom::Position;
+use super::player::PlayerId;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct UnitClassId(u32);  // Set at runtime with
                               // HashMap<UnitClassId, UnitDefinition>
@@ -15,13 +18,14 @@ pub struct UnitDefinition {
     pub base_speed: u8,
 }
 
+#[derive(Clone)]
 pub struct Unit {
     pub id: u32,
-    //pub owner: PlayerId,
+    pub owner: PlayerId,
     pub class: UnitClassId,
     pub health: u32,
     pub actions: Vec<ActionPoint>,
-    //pub position: Position,
+    pub position: Position,
     //pub effects: Vec<Effect>,
 }
 
