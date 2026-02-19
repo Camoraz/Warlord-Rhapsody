@@ -2,7 +2,7 @@ use std::collections::{VecDeque, HashMap};
 use super::unit::{Unit, UnitId};
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnitQueue {
     queue: VecDeque<UnitId>,
 }

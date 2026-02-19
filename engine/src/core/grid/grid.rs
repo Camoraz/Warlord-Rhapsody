@@ -2,6 +2,7 @@ use super::super::geom::{Position};
 use super::super::unit::{UnitId};
 use super::TerrainType;
 
+#[derive(Clone)]
 pub struct Grid {
     width: usize,
     height: usize,

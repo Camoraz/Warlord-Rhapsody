@@ -1,5 +1,6 @@
 use smallvec::SmallVec;
 
+#[derive(Debug, Clone, Copy)]
 pub struct AttackId(u16);
 
 struct AttackDefinition {
@@ -7,7 +8,7 @@ struct AttackDefinition {
     damage_type: DamageProfile,
     range: AttackRange,
     aoe: AoePattern,
-    effects: SmallVec<Effect, 3>,
+    //effects: SmallVec<Effect, 3>,
     target: TargetFilter,
 }
 

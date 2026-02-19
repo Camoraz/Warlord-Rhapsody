@@ -1,6 +1,7 @@
 use super::direction::Direction;
 use super::position::Position;
 
+#[derive(Debug, Clone)]
 pub struct Path {
     path: Vec<Direction>,
     start: Position,

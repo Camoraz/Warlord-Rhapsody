@@ -52,7 +52,7 @@ impl Unit {
     // }
 }
 
-
+#[derive(Debug, Clone)]
 pub enum ActionPoint {
     Move,
     Attack,
