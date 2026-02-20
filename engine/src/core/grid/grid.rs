@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::core::unit::Unit;
+
 use super::super::geom::{Position};
 use super::super::unit::{UnitId};
 use super::TerrainType;
@@ -50,7 +54,33 @@ impl Grid {
             None
         }
     }
+    
+    pub fn populate_occupancy(&mut self, units: &HashMap<UnitId, Unit>) {
+        self.occupancy.clear();
 
+        for unit  in units {
+            self.set_occupancy(unit.1.get_pos(), Some(*unit.0));
+        }
+    }
+    
+    pub fn get_occupancy(&self, pos: Position) -> Option<UnitId> {
+        if !self.in_bounds(pos) { return None; }
+        let idx = self.idx(pos);
+        self.occupancy[idx]
+    }
+
+    pub fn move_occupancy(&mut self, old_pos: Position, new_pos: Position) {
+        debug_assert!(self.in_bounds(old_pos), "move_occupancy called with out-of-bounds old position: {:?}", old_pos);
+        debug_assert!(self.in_bounds(new_pos), "move_occupancy called with out-of-bounds new position: {:?}", new_pos);
+
+        let unit = self.get_occupancy(old_pos)
+            .expect("move_occupancy called but no unit at old_pos");
+
+        self.set_occupancy(old_pos, None);
+        self.set_occupancy(new_pos, Some(unit));
+    }
+
+    // should only be called by game
     pub fn set_occupancy(&mut self, pos: Position, unit: Option<UnitId>) {
         debug_assert!(self.in_bounds(pos), "set_occupancy called with out-of-bounds position: {:?}", pos);
 

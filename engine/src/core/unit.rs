@@ -1,12 +1,17 @@
+use tokio::io::unix::AsyncFdTryNewError;
+
+use crate::core::game::state::ProposedAction;
+
 use super::geom::Position;
 use super::player::PlayerId;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct UnitClassId(u32);  // Set at runtime with
                               // HashMap<UnitClassId, UnitDefinition>
+impl UnitClassId { pub fn new(val: u32) -> Self { UnitClassId(val) }}
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]                       
-pub struct UnitId(u32);
+#[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]              
+pub struct UnitId(pub u32);
 
 pub struct UnitDefinition {
     pub name: String,
@@ -20,7 +25,7 @@ pub struct UnitDefinition {
 
 #[derive(Clone)]
 pub struct Unit {
-    pub id: u32,
+    pub id: UnitId,
     pub owner: PlayerId,
     pub class: UnitClassId,
     pub health: u32,
@@ -30,14 +35,26 @@ pub struct Unit {
 }
 
 impl Unit {
+    pub fn get_pos(&self) -> Position {
+        self.position
+    }
+
+    pub fn get_id(&self) -> UnitId {
+        self.id
+    }
+
+    pub fn change_pos(&mut self, new_pos: Position) {
+        self.position = new_pos;
+    }
+
     // Compute the current effective speed of the unit,
     // including base speed and active effects/modifiers
-    // pub fn speed(&self, registry: &ClassRegistry) -> u8 {
+    pub fn speed(&self) -> u8 {  // take arg , registry: &ClassRegistry
         // Get base speed from the unit definition
-        //let base = registry.classes[&self.class].base_speed as f32;
+        // let base = registry.classes[&self.class].base_speed as f32;
 
-        //let mut additive: f32 = 0.0;
-        //let mut multiplier: f32 = 1.0;
+        let mut additive: f32 = 0.0;
+        let mut multiplier: f32 = 1.0;
 
         // Apply all effects
         // for effect in &self.effects {
@@ -48,8 +65,8 @@ impl Unit {
         // let effective = (base + additive) * multiplier;
 
         // effective.max(1.0).min(255.0) as u8
-    //     1.0
-    // }
+        1
+    }
 }
 
 #[derive(Debug, Clone)]

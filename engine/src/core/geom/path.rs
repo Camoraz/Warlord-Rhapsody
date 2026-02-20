@@ -16,6 +16,9 @@ impl Path {
             end: end,
         }
     }
+
+    pub fn end(&self) -> Position { self.end }
+    pub fn start(&self) -> Position { self.start }
 }
 
 impl<'a> IntoIterator for &'a Path {

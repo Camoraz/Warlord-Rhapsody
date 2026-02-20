@@ -1,62 +1,67 @@
-use std::collections::{VecDeque, HashMap};
-use super::unit::{Unit, UnitId};
+use core::alloc;
+use std::collections::{HashMap, VecDeque};
+use crate::core::unit::{Unit, UnitId};
+use crate::core::game::Game; // to access units for speed
 
-
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct UnitQueue {
     queue: VecDeque<UnitId>,
 }
 
 impl UnitQueue {
-    pub fn new() -> Self {
-        Self {
-            queue: VecDeque::new(),
-        }
-    }
+    /// Create a new queue from a slice of units
+    pub fn new(units: &[Unit]) -> Self {
+        let mut sorted_units: Vec<UnitId> = units.iter()
+            .map(|u| u.id)
+            .collect();
 
-    /// Recompute queue order based on speed and unit id
-    /// `units` is the game units hashmap
-    /*
-    pub fn refresh(&mut self, units: &HashMap<UnitId, Unit>, registry: &ClassRegistry) {
-        let mut units_vec: Vec<&Unit> = units.values().collect();
-
-        // sort by descending speed, then ascending unit id
-        units_vec.sort_by(|a, b| {
-            let speed_a = a.speed(registry);
-            let speed_b = b.speed(registry);
-            speed_b.cmp(&speed_a)           // descending speed
-                .then(a.id.cmp(&b.id))      // tie-breaker
+        // Sort by speed descending, then UnitId ascending
+        sorted_units.sort_unstable_by(|a, b| {
+            let a_speed = units.iter().find(|u| u.id == *a).unwrap().speed();
+            let b_speed = units.iter().find(|u| u.id == *b).unwrap().speed();
+            b_speed.cmp(&a_speed).then(a.cmp(b))
         });
 
-        self.queue.clear();
-        for unit in units_vec {
-            self.queue.push_back(unit.id);
+        Self {
+            queue: VecDeque::from(sorted_units),
         }
     }
-    */
 
-    /// Returns the unit ID whose turn it is now
-    pub fn current(&self) -> Option<UnitId> {
-        self.queue.front().cloned()
-    }
-
-    /// Advances the queue by removing the front unit
-    pub fn advance(&mut self) -> Option<UnitId> {
+    /// Pop the next unit from the front
+    pub fn next_unit(&mut self) -> Option<UnitId> {
         self.queue.pop_front()
     }
 
-    /// Returns a slice of remaining unit IDs
-    pub fn remaining(&self) -> &[UnitId] {
-        self.queue.as_slices().0
+    /// Peek at the next unit without removing it
+    pub fn peek(&self) -> Option<UnitId> {
+        self.queue.front().copied()
     }
 
-    /// Removes a unit from the queue
-    pub fn remove_unit(&mut self, unit_id: UnitId) {
-        self.queue.retain(|&id| id != unit_id);
+    /// Push a unit to the back (e.g., for delayed effects or spawns mid-round)
+    pub fn push_unit(&mut self, unit_id: UnitId) {
+        self.queue.push_back(unit_id);
     }
 
-    /// Clear the queue entirely
-    pub fn clear(&mut self) {
-        self.queue.clear();
+    /// Recompute the queue ordering from the remaining units using their current speed
+    pub fn recompute_from_units(&mut self, units: &HashMap<UnitId, Unit>) {
+        let mut remaining: Vec<UnitId> = self.queue.iter().copied().collect();
+        remaining.sort_unstable_by(|a, b| {
+            let a_speed = units.get(a).unwrap().speed();
+            let b_speed = units.get(b).unwrap().speed();
+            b_speed.cmp(&a_speed).then(a.cmp(b))
+        });
+        self.queue = VecDeque::from(remaining);
+    }
+
+    /// Reset the queue for a new round using all units in the game
+    pub fn reset_from_game(&mut self, units: &HashMap<UnitId, Unit>) {
+        let mut all_units: Vec<UnitId> = units.keys().copied().collect();
+
+        all_units.sort_unstable_by(|a, b| {
+            let a_speed = units.get(a).unwrap().speed();
+            let b_speed = units.get(b).unwrap().speed();
+            b_speed.cmp(&a_speed).then(a.cmp(b))
+        });
+        self.queue = VecDeque::from(all_units);
     }
 }
