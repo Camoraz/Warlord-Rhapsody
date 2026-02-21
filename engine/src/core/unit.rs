@@ -13,6 +13,12 @@ impl UnitClassId { pub fn new(val: u32) -> Self { UnitClassId(val) }}
 #[derive(Copy, Clone, Debug, Eq, Ord, PartialEq, PartialOrd, Hash)]              
 pub struct UnitId(pub u32);
 
+impl UnitId {
+    pub fn next(self) -> Option<Self> {
+        self.0.checked_add(1).map(UnitId)
+    }
+}
+
 pub struct UnitDefinition {
     pub name: String,
     pub base_health: i32,
@@ -35,6 +41,17 @@ pub struct Unit {
 }
 
 impl Unit {
+    pub fn new(class: UnitClassId, owner: PlayerId, pos: Position, id: UnitId) -> Self {
+        Unit {
+            id: id,
+            owner: owner,
+            class: class,
+            health: u32::default(),  // This needs to be changed
+            actions: Vec::new(),
+            position: pos,
+        }
+    }
+
     pub fn get_pos(&self) -> Position {
         self.position
     }

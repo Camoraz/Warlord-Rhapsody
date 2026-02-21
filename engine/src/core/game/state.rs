@@ -4,12 +4,18 @@ use std::collections::HashMap;
 use crate::core::unit::{Unit, UnitId};
 use crate::core::grid::Grid;
 use crate::core::turn::UnitQueue;
-use crate::core::geom::{Direction, Position, Path};
+use crate::core::geom::{Direction, Path, Position, position};
 use crate::core::player::{PlayerId, Player};
 use crate::core::combat::AttackId;
 use crate::core::unit::UnitClassId;
 
 
+/// Game is divided into rounds and turns.
+/// Each round, all units from the queue have one turn.
+/// One turn can have multiple requests (move, attack...).
+/// The first turn of each round, this is a special turn where no units move,
+/// but instead the clients request to spawn n units and, if accepted,
+/// the new queue is constructed and the round proceeds as usual.
 pub struct Game {
     players: HashMap<PlayerId, Player>,
     
@@ -25,11 +31,43 @@ pub struct Game {
     snapshots: Vec<RoundSnapshot>,  // round snapshots
 }
 
+struct Turn {
+    turn_number: u32,
+    phase: RoundPhase,  // spawn phase, unit phase
+    changes: Vec<ResolvedChange>,  // what happened
+}
+
 impl Game {
+    pub fn new(players: HashMap<PlayerId, Player>, grid: Grid) -> Self {
+        Game {
+            players,
+            units: HashMap::new(),
+            grid,
+            queue: UnitQueue::new(),
+            round_number: 1,
+            turn_number: 1,
+            curr_turn: Turn::new(1, ),
+            history: Vec::new(),
+            snapshots: Vec::new(),
+        }
+    }
+
+    fn next_unit_id(&self) -> Option<UnitId> {
+        self.units
+            .keys()
+            .copied()
+            .max()
+            .map(|max_id| max_id.next())
+            .unwrap_or(Some(UnitId(0)))
+    }
+
     fn apply_resolution(&mut self, change: ResolvedChange) {
         match change {
             ResolvedChange::Move { unit_id, path } => {
                 self.move_unit(unit_id, path);
+            },
+            ResolvedChange::Spawn { unit, owner, position } => {
+                self.spawn_unit(unit, position, owner);
             }
             _ => unimplemented!()
         }
@@ -37,6 +75,19 @@ impl Game {
 
     pub fn units_iter(&self) -> impl Iterator<Item = &Unit> {
         self.units.values()
+    }
+
+    pub fn spawn_unit(&mut self, unit_class: UnitClassId, pos: Position, owner: PlayerId) {
+        let new_unit_id: UnitId = self.next_unit_id().unwrap();
+        
+        let new_unit = Unit::new(
+            unit_class,
+            owner,
+            pos,
+            new_unit_id);
+        
+        self.units.insert(new_unit_id, new_unit);
+        self.grid.set_occupancy(pos, Some(new_unit_id));
     }
 
     pub fn move_unit(&mut self, unit_id: UnitId, path: Path) {
@@ -63,25 +114,53 @@ impl Game {
     }
 
     pub fn commit_turn(&mut self) {
-        // Attempt to get the next unit
-        let next_unit_opt = self.queue.next_unit();
+        // Move current turn into history
+        let old_turn = std::mem::replace(
+            &mut self.curr_turn,
+            Turn::new(
+                self.turn_number + 1,
+                RoundPhase::SpawnPhase // dummy, will overwrite
+            ),
+        );
 
-        match next_unit_opt {
-            Some(next_unit) => {
-                // Normal turn commit
-                self.update_turn(next_unit);
+        let finished_phase = old_turn.phase.clone();
+
+        self.history.push(old_turn);
+        self.turn_number += 1;
+
+        match &self.history.last().unwrap().phase {
+            RoundPhase::SpawnPhase => {
+                // Spawn phase just ended
+
+                // Build queue using updated units (including spawns)
+                self.queue.reset_from_game(&self.units);
+
+                // First unit of round
+                let first_unit = self.queue
+                    .next_unit()
+                    .expect("Queue must contain at least one unit");
+
+                self.curr_turn.phase = RoundPhase::UnitTurn { unit: first_unit };
             }
-            None => {
-                // End of round
-                self.snapshot_round();      // Save the full game state for this round
-                self.queue.reset_from_game(&self.units);         // Reset the queue for the next round
-                self.round_number += 1;     // Increment round counter
 
-                // Start a new turn with the first unit in the new queue
-                let first_unit = self.queue.next_unit()
-                    .expect("Queue must have units after reset");
+            RoundPhase::UnitTurn { .. } => {
+                // Normal unit turn ended
 
-                self.update_turn(first_unit);
+                match self.queue.next_unit() {
+                    Some(next_unit) => {
+                        // Continue same round
+                        self.curr_turn.phase = RoundPhase::UnitTurn { unit: next_unit };
+                    }
+                    None => {
+                        // End of round
+                        self.snapshot_round();
+
+                        self.round_number += 1;
+
+                        // Start next round in spawn phase
+                        self.curr_turn.phase = RoundPhase::SpawnPhase;
+                    }
+                }
             }
         }
     }
@@ -132,23 +211,18 @@ pub enum ResolvedChange {
         unit_id: UnitId,
     },
     Spawn {
-        unit: Unit,
+        unit: UnitClassId,
+        owner: PlayerId,
         position: Position,
     },
     EndTurn,
 }
 
-struct Turn {
-    turn_number: u32,
-    unit: UnitId,  // who moves
-    changes: Vec<ResolvedChange>,  // what happened
-}
-
 impl Turn {
-    fn new(turn_number: u32, unit: UnitId) -> Self {
+    pub fn new(turn_number: u32, phase: RoundPhase) -> Self {
         Turn {
             turn_number,
-            unit,
+            phase,
             changes: Vec::new(),
         }
     }
@@ -186,4 +260,10 @@ pub enum GameError {
     OutOfRange,
     NotEnoughResources,
     IllegalAction,
+}
+
+#[derive(Clone)]
+pub enum RoundPhase {
+    SpawnPhase,                 // special first "turn"
+    UnitTurn { unit: UnitId },  // normal turn
 }
