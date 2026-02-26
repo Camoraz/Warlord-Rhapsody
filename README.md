@@ -2,9 +2,13 @@
 
 This is the official repository for [Warlord Rhapsody](https://store.steampowered.com/app/3508280/Warlord_Rhapsody/).
 
-The original game was made in Unity, but I'm rewriting it in Rust. In addition, I'm open sourcing the engine.
+<img width="368" height="172" alt="image" src="https://github.com/user-attachments/assets/874a7b22-2960-4a2d-b936-f62030a484e6" />
 
-<img width="460" height="215" alt="image" src="https://github.com/user-attachments/assets/874a7b22-2960-4a2d-b936-f62030a484e6" />
+
+### Why Rust?
+I’m done with Unity! The code was a mess and not scalable, so I took a hard turn into Rust. This allows me to have complete control over the game’s performance while also embracing Rust’s memory safety—which is especially handy for complex, turn-based mechanics.
+
+I believe in open-source software and want full control over my game engine. Plus, there’s something deeply satisfying about low-level programming without unnecessary abstractions.
 
 # Screenshots
 
