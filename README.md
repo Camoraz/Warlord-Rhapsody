@@ -6,7 +6,7 @@ This is the official repository for [Warlord Rhapsody](https://store.steampowere
 
 
 ### Why Rust?
-I’m done with Unity! The code was a mess and not scalable, so I took a hard turn into Rust. This allows me to have complete control over the game’s performance while also embracing Rust’s memory safety—which is especially handy for complex, turn-based mechanics.
+I’m done with Unity! I started with the project years ago, so due to inexperience the code was a mess and not scalable, and I wanted to rewrite it. So I took a hard turn into Rust. This allows me to have complete control over the game’s performance while also embracing Rust’s memory safety—which is especially handy for complex, turn-based mechanics.
 
 I believe in open-source software and want full control over my game engine. Plus, there’s something deeply satisfying about low-level programming without unnecessary abstractions.
 
